@@ -1,0 +1,6 @@
+Email: admin@amonic.com
+Password: admin
+или любой другой администратор, например:
+
+Email: peter.s@yahoo.com
+Password: password

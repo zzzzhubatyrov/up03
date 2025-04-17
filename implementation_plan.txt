@@ -1,0 +1,169 @@
+# AMONIC Airlines Automation System - Implementation Plan
+
+## 1. User Management
+
+### 1.1. Administrator User Creation
+
+The application should create an administrator user upon startup. This will be implemented in the `initialize_database()` function in `app/config/init_db.py`:
+
+- Check if an administrator user already exists
+- If not, create a default administrator with:
+  - Email: admin@amonic.com
+  - Password: admin
+  - Role: administrator
+  - Office: Head Office
+  - Active status: True
+
+### 1.2. User Role Management
+
+Administrators cannot add other administrators, and there should be a "Change Role" feature for modifying user access levels:
+
+- Modify the `change_role_window.py` to prevent administrators from creating other administrators
+- Implement role validation in the UserController to enforce this rule
+- Ensure the Change Role button is only enabled for non-administrator users
+
+### 1.3. Adding Users to the Database
+
+Users need to be added to the database through the admin interface:
+
+- Complete the implementation of the `add_user_window.py` form
+- Ensure all required fields are validated:
+  - Email (valid format)
+  - First name and Last name (non-empty)
+  - Office (selected from dropdown)
+  - Birthdate (valid format dd/mm/yy)
+  - Password (non-empty)
+- Add the user to the database with default "user" role
+
+### 1.4. Disabled User Display
+
+Disabled user profiles should be displayed in red color in the UI:
+
+- In the `admin_view.py`, configure the Treeview to display inactive users with red background
+- Use the tag system to apply the 'inactive_bg' tag to rows with inactive users
+- Ensure the tag configuration sets the background color to red (#ffcccc)
+
+### 1.5. Age Calculation
+
+Age in years should be calculated from the birthdate in the database and the current system date:
+
+- Implement the age calculation in the `load_users()` method of `admin_view.py`:
+  ```python
+  today = datetime.now().date()
+  born = user.birthdate.date() if isinstance(user.birthdate, datetime) else user.birthdate
+  age = today.year - born.year - ((today.month, today.day) < (born.month, born.day))
+  ```
+- Display the calculated age in the users table
+
+## 2. User Interface for Regular Users
+
+### 2.1. Welcome Message
+
+The user interface for regular users should display a welcome message with the user's name:
+
+- Implement in `user_view.py` by adding a welcome label to the info panel:
+  ```python
+  welcome_label = ttk.Label(info_frame, text=f"Welcome, {self.user.firstname} {self.user.lastname}!", font=("Arial", 14, "bold"))
+  welcome_label.pack(anchor=tk.W, padx=10, pady=10)
+  ```
+
+### 2.2. Time Spent in System
+
+Display the time spent in the system over the last 30 days:
+
+- Implement the `calculate_time_spent()` method in `user_view.py`:
+  - Query the UserSession table for sessions in the last 30 days
+  - Calculate the total time spent by summing the duration of each session
+  - Format the result as "X hours Y minutes"
+  - Display in the info panel
+
+### 2.3. Number of Crashes
+
+Display the number of crashes for the current user:
+
+- Implement the `count_crashes()` method in `user_view.py`:
+  - Query the SystemCrash table for crashes associated with the current user
+  - Count the total number of crashes
+  - Display in the info panel
+
+### 2.4. User Activity List
+
+Create a list of user activities with login/logout times and crash information:
+
+- Complete the `create_activity_table()` method in `user_view.py`:
+  - Create a Treeview with columns: "Login Date", "Login Time", "Logout Time", "Time Spent", "Crash"
+  - Configure column widths and headings
+  - Add scrollbars for navigation
+
+- Implement the `load_activity_data()` method:
+  - Query the UserSession table for the current user's sessions
+  - For each session, calculate the time spent
+  - Format dates and times appropriately
+  - Mark crashed sessions with a distinct visual indicator
+  - Sort sessions by login time (newest first)
+
+### 2.5. Complete Info Panel Implementation
+
+Complete the `create_info_panel()` method in `user_view.py`:
+
+```python
+def create_info_panel(self):
+    # Create info panel frame
+    info_frame = ttk.LabelFrame(self, text="User Information")
+    info_frame.pack(fill=tk.X, padx=10, pady=10)
+    
+    # Welcome message
+    welcome_label = ttk.Label(info_frame, text=f"Welcome, {self.user.firstname} {self.user.lastname}!", font=("Arial", 14, "bold"))
+    welcome_label.pack(anchor=tk.W, padx=10, pady=10)
+    
+    # Time spent in system
+    time_spent = self.calculate_time_spent()
+    time_label = ttk.Label(info_frame, text=f"Time spent on system: {time_spent}")
+    time_label.pack(anchor=tk.W, padx=10, pady=5)
+    
+    # Number of crashes
+    crashes = self.count_crashes()
+    crash_label = ttk.Label(info_frame, text=f"Number of crashes: {crashes}")
+    crash_label.pack(anchor=tk.W, padx=10, pady=5)
+```
+
+## Implementation Timeline
+
+1. Complete the administrator user creation functionality
+2. Implement the user role management features
+3. Finalize the user addition form and validation
+4. Implement the disabled user display with red background
+5. Complete the age calculation from birthdate
+6. Develop the regular user interface with welcome message
+7. Implement time spent calculation and display
+8. Add crash counting functionality
+9. Create the user activity list with all required information
+10. Test all features thoroughly and fix any issues
+
+## Testing Plan
+
+1. Test administrator user creation:
+   - Verify admin user is created on first run
+   - Verify admin user is not recreated on subsequent runs
+
+2. Test user role management:
+   - Verify administrators cannot create other administrators
+   - Test the Change Role functionality
+
+3. Test user addition:
+   - Verify all validation rules work correctly
+   - Test adding users with various data combinations
+
+4. Test disabled user display:
+   - Verify disabled users appear with red background
+   - Test enabling/disabling users updates the display
+
+5. Test age calculation:
+   - Verify age is calculated correctly for various birthdates
+   - Test edge cases (birthdays, leap years)
+
+6. Test regular user interface:
+   - Verify welcome message displays correctly
+   - Test time spent calculation for various scenarios
+   - Verify crash count is accurate
+   - Test activity list displays all required information
